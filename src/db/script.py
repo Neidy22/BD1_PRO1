@@ -128,10 +128,9 @@ CREATE_MODEL_SCRIPT = """
     
     CREATE TABLE detalle_voto
     (
-        id_detalle INT NOT NULL,
+        id_detalle INT PRIMARY KEY IDENTITY(1,1),
         id_voto INT NOT NULL,
         id_candidato INT NOT NULL,
-        PRIMARY KEY (id_detalle),
         FOREIGN KEY (id_voto) REFERENCES voto (id_voto),
         FOREIGN KEY (id_candidato) REFERENCES candidato (id_candidato)
     );

@@ -1,6 +1,7 @@
 # coding=utf-8
 from flask import Flask, request
 from controllers.temporary import temporary_bulk_upload, drop_temporary_and_model
+from controllers.model import *
 
 app = Flask(__name__)
 
@@ -22,4 +23,10 @@ def bulk_temp():
 @app.route("/eliminartabtemp", methods=['GET'])
 def delete_temp():
     msg = drop_temporary_and_model()
+    return msg
+
+
+@app.route("/crearmodelo", methods=['GET'])
+def create__new_model():
+    msg = create_model()
     return msg

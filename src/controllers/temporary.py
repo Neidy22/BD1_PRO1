@@ -3,7 +3,7 @@ from db.connection import connection_to_server, connection_to_database
 import csv
 import os
 from db.script import TEMP_SCRIPT
-from controllers.model import create_model, delete_model
+from controllers.model import create_model, delete_model, bulk_model
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # crear el script de las tablas temporales, estas no contienen llaves
@@ -14,11 +14,11 @@ def temporary_bulk_upload():
     try:
         # crear la base de datos y las tablas del modelo ya normalizado y con sus respectivas llaves
 
-        msg += create_model()
+        # msg += create_model()
 
         # usar la nueva base
         conn, curs = connection_to_database()
-
+        curs.execute('USE pro1')
         # obtener los scripts de las creaciones de tablas
         sql_temp_scripts = TEMP_SCRIPT.split(";")
         # recorrer el arreglo de scripts y crear las tablas
@@ -28,6 +28,8 @@ def temporary_bulk_upload():
         msg += "Tablas temporales creadas \n"
         # llenar las tablas temporales
         msg += load_tables_from_files(curs)
+
+        msg += bulk_model(conn, curs)
 
         # con.commit()
         curs.close()  # cierro el curs
