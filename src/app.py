@@ -66,3 +66,9 @@ def query_5():
 def query_6():
     res = consulta6()
     return res
+
+
+@app.route("/consulta7", methods=['GET'])
+def query_7():
+    res = consulta7()
+    return res

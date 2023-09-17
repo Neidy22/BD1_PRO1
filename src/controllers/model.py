@@ -261,3 +261,41 @@ def consulta6():
     curs.close()
     conn.close()
     return data
+
+
+def consulta7():
+    """
+    Top 10 de edad de ciudadanos que realizaron su voto
+    """
+    conn, curs = connection_to_database()
+    data = {}
+    list_edad = []
+    data["Consulta"] = 7
+    # curs.execute('''
+    #             SELECT
+    #                 edad, COUNT(*) cantidad
+    #             FROM
+    #                 ciudadano
+    #             INNER JOIN voto
+    #                 ON ciudadano.dpi = voto.dpi
+    #             GROUP BY
+    #                 edad
+    #             ORDER BY edad DESC''')
+    curs.execute('''
+                SELECT TOP 10 edad, COUNT(edad) cantidad
+                FROM 
+                    ciudadano
+                INNER JOIN voto 
+                    ON ciudadano.dpi = voto.dpi
+                GROUP BY
+                    edad
+                ORDER BY cantidad DESC
+                ''')
+    rows = curs.fetchall()
+    for r in rows:
+        actual = {"Edad": r.edad, "Cantidad": r.cantidad}
+        list_edad.append(actual)
+    data["Return"] = list_edad
+    curs.close()
+    conn.close()
+    return data
