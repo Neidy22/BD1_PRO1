@@ -153,3 +153,32 @@ def consulta2():
     curs.close()
     conn.close()
     return data
+
+
+def consulta3():
+    """
+    Mostrar el nombre de los candidatos a alcalde por partido
+    """
+    conn, curs = connection_to_database()
+    # obtener el listado de los partidos inscritos
+    curs.execute(
+        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    rows = curs.fetchall()
+    data = {}
+    list_alc = []
+    data["Consulta"] = 3
+    data["Filas"] = len(rows)
+
+    for r in rows:
+        political_name = r.nombre
+        # obtener el conteo de candidatos a diputados para el partido
+        curs.execute(
+            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} AND id_cargo = 6')
+        name = curs.fetchval()
+        actual = {"Partido": political_name, "Alcalde": name}
+        list_alc.append(actual)
+
+    data["Return"] = list_alc
+    curs.close()
+    conn.close()
+    return data
