@@ -271,16 +271,7 @@ def consulta7():
     data = {}
     list_edad = []
     data["Consulta"] = 7
-    # curs.execute('''
-    #             SELECT
-    #                 edad, COUNT(*) cantidad
-    #             FROM
-    #                 ciudadano
-    #             INNER JOIN voto
-    #                 ON ciudadano.dpi = voto.dpi
-    #             GROUP BY
-    #                 edad
-    #             ORDER BY edad DESC''')
+
     curs.execute('''
                 SELECT TOP 10 edad, COUNT(edad) cantidad
                 FROM 
@@ -296,6 +287,45 @@ def consulta7():
         actual = {"Edad": r.edad, "Cantidad": r.cantidad}
         list_edad.append(actual)
     data["Return"] = list_edad
+    curs.close()
+    conn.close()
+    return data
+
+
+def consulta8():
+    """
+        Top 10 de candidatos más votados para presidente y vicepresidente (el voto por 
+        presidente incluye el vicepresidente)
+    """
+    conn, curs = connection_to_database()
+    curs.execute("""
+                SELECT TOP 10 nombres, id_partido, COUNT(id_partido) cantidad
+                FROM 
+                    candidato c
+                INNER JOIN detalle_voto v
+                    ON c.id_candidato = v.id_candidato AND c.id_cargo = 1
+                GROUP BY 
+                    c.id_partido, c.nombres
+                ORDER BY 
+                    cantidad DESC
+                """)
+    rows = curs.fetchall()
+    data = {}
+    lista_cand = []
+    data["Consulta"] = 8
+
+    for r in rows:
+        curs.execute(
+            f'SELECT nombre FROM partido WHERE id_partido = {r.id_partido}')
+        political_name = curs.fetchval()
+        curs.execute(
+            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} AND id_cargo = 2')
+        vice_name = curs.fetchval()
+        actual = {"Votos": r.cantidad, "Partido": political_name,
+                  "Presidente": r.nombres, "Vicepresidente": vice_name}
+        lista_cand.append(actual)
+
+    data["Return"] = lista_cand
     curs.close()
     conn.close()
     return data
