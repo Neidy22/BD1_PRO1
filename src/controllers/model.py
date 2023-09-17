@@ -242,3 +242,22 @@ def consulta5():
     curs.close()
     conn.close()
     return data
+
+
+def consulta6():
+    """
+    Cantidad de votos nulos
+    """
+    conn, curs = connection_to_database()
+    data = {}
+    data["Consulta"] = 6
+
+    curs.execute(
+        f'SELECT COUNT (*) FROM voto INNER JOIN detalle_voto ON voto.id_voto = detalle_voto.id_voto AND detalle_voto.id_candidato = -1')
+    quantity = curs.fetchval()
+    data["Detalles de votos nulos"] = quantity
+    data["Votos nulos"] = quantity/5
+
+    curs.close()
+    conn.close()
+    return data
