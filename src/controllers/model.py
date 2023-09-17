@@ -363,3 +363,39 @@ def consulta9():
     curs.close()
     conn.close()
     return data
+
+
+def consulta10():
+    """
+        Mostrar el top 5 la hora más concurrida en que los ciudadanos fueron a votar.
+    """
+    conn, curs = connection_to_database()
+
+
+def consulta11():
+    """
+        Cantidad de votos por genero (Masculino, Femenino).
+    """
+    conn, curs = connection_to_database()
+    curs.execute('''
+                 SELECT COUNT(ciudadano.genero)cantidad
+                 FROM ciudadano
+                 INNER JOIN voto v
+                    ON v.dpi = ciudadano.dpi AND ciudadano.genero = 'F'
+                ''')
+    fem = curs.fetchval()
+
+    curs.execute('''
+                 SELECT COUNT(ciudadano.genero)cantidad
+                 FROM ciudadano
+                 INNER JOIN voto v
+                    ON v.dpi = ciudadano.dpi AND ciudadano.genero = 'M'
+                ''')
+    masc = curs.fetchval()
+
+    data = {"Consulta": 11, "Return": [
+        {"Genero": "Femenino", "Votos": fem}, {"Genero": "Masculino", "Votos": masc}]}
+    curs.close()
+    conn.close()
+
+    return data
