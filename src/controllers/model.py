@@ -329,3 +329,37 @@ def consulta8():
     curs.close()
     conn.close()
     return data
+
+
+def consulta9():
+    conn, curs = connection_to_database()
+    curs.execute("SELECT * FROM mesa")
+    mesas = curs.fetchall()
+    print(mesas[0], len(mesas))
+    curs.execute("""
+                SELECT TOP 5 mesa.id_mesa, mesa.id_departamento, COUNT(*) cantidad
+                FROM 
+                    mesa 
+                INNER JOIN voto v
+                    ON mesa.id_mesa = v.id_mesa 
+                GROUP BY 
+                    mesa.id_mesa, mesa.id_departamento
+                ORDER BY 
+                    cantidad DESC
+                """)
+    rows = curs.fetchall()
+    data = {}
+    list_m = []
+    data["Consulta"] = 9
+    for r in rows:
+        curs.execute(
+            f'SELECT nombre FROM departamento WHERE id_departamento = {r.id_departamento}')
+        name_dep = curs.fetchval()
+        actual = {"No. de mesa": r.id_mesa,
+                  "Departamento": name_dep, "Votos": r.cantidad}
+        list_m.append(actual)
+
+    data["Return"] = list_m
+    curs.close()
+    conn.close()
+    return data
