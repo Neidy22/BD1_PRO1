@@ -123,3 +123,33 @@ def consulta1():
     curs.close()
     conn.close()
     return data
+
+
+def consulta2():
+    """
+    Mostrar el número de candidatos a diputados (esto incluye lista nacional, distrito 
+    electoral, parlamento) por cada partido
+    """
+    conn, curs = connection_to_database()
+    # obtener el listado de los partidos inscritos
+    curs.execute(
+        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    rows = curs.fetchall()
+    data = {}
+    list_dip = []
+    data["Consulta"] = 2
+    data["Filas"] = len(rows)
+
+    for r in rows:
+        political_name = r.nombre
+        # obtener el conteo de candidatos a diputados para el partido
+        curs.execute(
+            f'SELECT COUNT (*) FROM candidato WHERE id_partido = {r.id_partido} AND (id_cargo >= 3 OR id_cargo<=5)')
+        quantity = curs.fetchval()
+        actual = {"Partido": political_name, "Cantidad de diputados": quantity}
+        list_dip.append(actual)
+
+    data["Return"] = list_dip
+    curs.close()
+    conn.close()
+    return data

@@ -36,3 +36,9 @@ def create__new_model():
 def query_1():
     res = consulta1()
     return res
+
+
+@app.route("/consulta2", methods=['GET'])
+def query_2():
+    res = consulta2()
+    return res
