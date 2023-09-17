@@ -2,7 +2,7 @@
 from flask import Flask, request
 from controllers.temporary import temporary_bulk_upload, drop_temporary_and_model
 from controllers.model import *
-
+import json
 app = Flask(__name__)
 
 
@@ -30,3 +30,9 @@ def delete_temp():
 def create__new_model():
     msg = create_model()
     return msg
+
+
+@app.route("/consulta1", methods=['GET'])
+def query_1():
+    res = consulta1()
+    return res

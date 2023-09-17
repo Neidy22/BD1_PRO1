@@ -1,6 +1,7 @@
 import pyodbc
 from db.script import CREATE_MODEL_SCRIPT, DELETE_MODEL_SCRIPT
 from db.connection import connection_to_server, connection_to_database
+import json
 
 
 def create_model():
@@ -84,3 +85,41 @@ def bulk_model(conn, curs):
 
     except pyodbc.Error as e:
         return f"status: Error, msg: {e} "
+
+
+def consulta1():
+    '''
+    Mostrar el nombre de los candidatos a presidentes y vicepresidentes por partido (en 
+    este reporte/consulta se espera ver tres columnas: “nombre presidente”, “nombre 
+    vicepresidente”, “partido”)
+    '''
+
+    conn, curs = connection_to_database()
+    # obtengo el listado de partidos
+    curs.execute(
+        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    rows = curs.fetchall()
+    data = {}
+
+    data["Consulta"] = 1
+    data["Filas"] = len(rows)
+    list_can = []
+    for r in rows:
+        political_name = r.nombre
+        # obtengo el candidato a presidente del partido actual
+        curs.execute(
+            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} and id_cargo = 1')
+        name_president = curs.fetchval()
+        curs.execute(
+            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} and id_cargo = 2')
+        name_vice = curs.fetchval()
+
+        actual = {"Partido": political_name,
+                  "Presidente": name_president, "Vicepresidente": name_vice}
+        list_can.append(actual)
+
+    data["Return"] = list_can
+
+    curs.close()
+    conn.close()
+    return data
