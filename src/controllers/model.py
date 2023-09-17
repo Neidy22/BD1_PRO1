@@ -212,3 +212,33 @@ def consulta4():
     curs.close()
     conn.close()
     return data
+
+
+def consulta5():
+    """
+    Cantidad de votaciones por departamentos.
+    """
+    conn, curs = connection_to_database()
+    # obtener el listado de los departamento
+    curs.execute(
+        'SELECT id_departamento, nombre FROM departamento')
+    rows = curs.fetchall()
+    data = {}
+    list_dep = []
+    data["Consulta"] = 5
+    data["Filas"] = len(rows)
+
+    for r in rows:
+        department_name = r.nombre
+        # obtener el conteo de candidatos a diputados para el partido
+        curs.execute(
+            f'SELECT COUNT(*) FROM voto INNER JOIN mesa ON mesa.id_mesa = voto.id_mesa WHERE mesa.id_departamento = {r.id_departamento} ')
+        quantity = curs.fetchval()
+        actual = {"Departamento": department_name,
+                  "Cantidad de votos": quantity}
+        list_dep.append(actual)
+
+    data["Return"] = list_dep
+    curs.close()
+    conn.close()
+    return data
