@@ -1,113 +1,57 @@
 import pyodbc
-from db.connection import newConnection
+from db.connection import connection_to_server, connection_to_database
 import csv
 import os
+from db.script import TEMP_SCRIPT
+from controllers.model import create_model, delete_model
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # crear el script de las tablas temporales, estas no contienen llaves
-script_temp = """
-    CREATE TABLE #ciudadano_temp
-    (
-        dpi VARCHAR (13) NOT NULL,
-        nombre VARCHAR (50) NOT NULL,
-        apellido VARCHAR (50) NOT NULL,
-        direccion VARCHAR (100) NOT NULL,
-        telefono VARCHAR (10) NOT NULL,
-        edad INT NOT NULL,
-        genero VARCHAR (1)
-
-    );
-
-    CREATE TABLE #departamento_temp
-    (
-        id_departamento INT NOT NULL,
-        nombre VARCHAR (50) NOT NULL
-    );
-
-    CREATE TABLE #partido_temp
-    (
-        id_partido INT NOT NULL,
-        nombre VARCHAR (100) NOT NULL,
-        siglas VARCHAR (50) NOT NULL,
-        fecha_fundacion DATE NOT NULL
-    );
-
-    CREATE TABLE #cargo_temp
-    (
-        id_cargo INT NOT NULL,
-        cargo VARCHAR (100) NOT NULL,
-    );
-
-    CREATE TABLE #mesa_temp
-    (
-        id_mesa INT NOT NULL,
-        id_departamento INT NOT NULL
-    );
-
-    CREATE TABLE #candidato_temp
-    (
-        id_candidato INT NOT NULL,
-        nombres VARCHAR (150) NOT NULL,
-        fecha_nacimiento DATE NOT NULL,
-        id_partido INT NOT NULL,
-        id_cargo INT NOT NULL
-    );
-
-    CREATE TABLE #voto_temp
-    (
-        id_voto INT NOT NULL,
-        id_candidato INT NOT NULL,
-        dpi VARCHAR (13) NOT NULL,
-        id_mesa INT NOT NULL,
-        fecha DATE NOT NULL,
-        hora TIME NOT NULL,
-    );
-"""
 
 
 def temporary_bulk_upload():
     msg = ""
     try:
-        # crear la conexión a la base de datos
-        con, curs = newConnection()
-        msg += "Conexión exitosa \n"
+        # crear la base de datos y las tablas del modelo ya normalizado y con sus respectivas llaves
+
+        msg += create_model()
+
+        # usar la nueva base
+        conn, curs = connection_to_database()
+
         # obtener los scripts de las creaciones de tablas
-        sql_temp_scripts = script_temp.split(";")
+        sql_temp_scripts = TEMP_SCRIPT.split(";")
         # recorrer el arreglo de scripts y crear las tablas
         for script in sql_temp_scripts:
             curs.execute(script)
             # msg += "Se creó la tabla temporal \n"
         msg += "Tablas temporales creadas \n"
         # llenar las tablas temporales
-        msg += load_tables_from_files(con, curs)
+        msg += load_tables_from_files(curs)
 
-        # crear las tablas del modelo ya normalizado y con sus respectivas llaves
-
-        # llenar el modelo
-        con.commit()
-        curs.close()  # cierro el cursor
-        con.close()  # cierro la conexión
+        # con.commit()
+        curs.close()  # cierro el curs
+        conn.close()  # cierro la conexión
 
     except pyodbc.Error as e:
-        print('Error en carga masiva: ', e)
         msg = f"Error en carga masiva {e}"
     return msg
 
 
-def load_tables_from_files(conn, cursor):
+def load_tables_from_files(curs):
     msg = ''
-    msg += load_citizen_temp(conn, cursor)
-    msg += load_department_temp(conn, cursor)
-    msg += load_political_temp(conn, cursor)
-    msg += load_position_temp(conn, cursor)
-    msg += load_station_temp(conn, cursor)
-    msg += load_candidate_temp(conn, cursor)
-    msg += load_vote_temp(conn, cursor)
+    msg += load_citizen_temp(curs)
+    msg += load_department_temp(curs)
+    msg += load_political_temp(curs)
+    msg += load_position_temp(curs)
+    msg += load_station_temp(curs)
+    msg += load_candidate_temp(curs)
+    msg += load_vote_temp(curs)
 
     return msg
 
 
-def load_citizen_temp(conn, cursor):
+def load_citizen_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'ciudadanos.csv')
     try:
@@ -124,8 +68,8 @@ def load_citizen_temp(conn, cursor):
                 telephone = row[4]
                 age = row[5]
                 gender = row[6]
-                cursor.execute(sql, (dpi, name, last_name,
-                               direction, telephone, age, gender))
+                curs.execute(sql, (dpi, name, last_name,
+                                   direction, telephone, age, gender))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Ciudadano cargada con éxito \n"
@@ -134,7 +78,7 @@ def load_citizen_temp(conn, cursor):
     return txt
 
 
-def load_department_temp(conn, cursor):
+def load_department_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'departamentos.csv')
     try:
@@ -146,7 +90,7 @@ def load_department_temp(conn, cursor):
             for row in rows:
                 id = row[0]
                 name = row[1]
-                cursor.execute(sql, (id, name))
+                curs.execute(sql, (id, name))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Departamento cargada con éxito \n"
@@ -155,7 +99,7 @@ def load_department_temp(conn, cursor):
     return txt
 
 
-def load_political_temp(conn, cursor):
+def load_political_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'partidos.csv')
     try:
@@ -175,7 +119,7 @@ def load_political_temp(conn, cursor):
                 mm = ddmmyy[1]
                 yy = ddmmyy[2]
                 date = f'{yy}-{mm}-{dd}'
-                cursor.execute(sql, (id, name, acronym, date))
+                curs.execute(sql, (id, name, acronym, date))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Partido cargada con éxito \n"
@@ -184,7 +128,7 @@ def load_political_temp(conn, cursor):
     return txt
 
 
-def load_position_temp(conn, cursor):
+def load_position_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'cargos.csv')
     try:
@@ -196,7 +140,7 @@ def load_position_temp(conn, cursor):
             for row in rows:
                 id = row[0]
                 position = row[1]
-                cursor.execute(sql, (id, position))
+                curs.execute(sql, (id, position))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Cargo cargada con éxito \n"
@@ -205,7 +149,7 @@ def load_position_temp(conn, cursor):
     return txt
 
 
-def load_station_temp(conn, cursor):
+def load_station_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'mesas.csv')
     try:
@@ -217,7 +161,7 @@ def load_station_temp(conn, cursor):
             for row in rows:
                 id_station = row[0]
                 id_department = row[1]
-                cursor.execute(sql, (id_station, id_department))
+                curs.execute(sql, (id_station, id_department))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Mesa cargada con éxito \n"
@@ -226,7 +170,7 @@ def load_station_temp(conn, cursor):
     return txt
 
 
-def load_candidate_temp(conn, cursor):
+def load_candidate_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'candidatos.csv')
     try:
@@ -246,8 +190,8 @@ def load_candidate_temp(conn, cursor):
                 birth_date = f'{yy}-{mm}-{dd}'
                 id_political = row[3]
                 id_position = row[4]
-                cursor.execute(sql, (id, names, birth_date,
-                               id_political, id_position))
+                curs.execute(sql, (id, names, birth_date,
+                                   id_political, id_position))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Candidato cargada con éxito \n"
@@ -256,7 +200,7 @@ def load_candidate_temp(conn, cursor):
     return txt
 
 
-def load_vote_temp(conn, cursor):
+def load_vote_temp(curs):
     txt = ''
     file_path = os.path.join(HERE, 'votaciones.csv')
     try:
@@ -264,7 +208,7 @@ def load_vote_temp(conn, cursor):
             reader = csv.reader(my_file)
             rows = list(reader)
             rows = rows[1:]  # quito la fila del encabezado del archivo
-            sql = 'INSERT INTO #voto_temp (id_voto, id_candidato, dpi, id_mesa, fecha, hora) VALUES(?,?,?,?,?,?);'
+            sql = 'INSERT INTO #voto_temp (id_voto, id_candidato, dpi, id_mesa, fecha_hora) VALUES(?,?,?,?,?);'
             for row in rows:
                 id_vote = row[0]
                 id_candidate = row[1]
@@ -280,9 +224,10 @@ def load_vote_temp(conn, cursor):
                 date = f'{yy}-{mm}-{dd}'
 
                 time = date_time[1]
+                date_time = f'{date} {time}'
 
-                cursor.execute(sql, (id_vote, id_candidate,
-                               dpi, id_station, date, time))
+                curs.execute(sql, (id_vote, id_candidate,
+                                   dpi, id_station, date_time))
                 # Guardar los cambios
                 # conn.commit()
             txt += "Tabla temporal Voto cargada con éxito \n"
@@ -290,3 +235,16 @@ def load_vote_temp(conn, cursor):
 
         txt = f"No se cargaron los datos de la tabla temporal voto, {e} \n"
     return txt
+
+
+def drop_temporary_and_model():
+    msg = ''
+    conn, curs = connection_to_server()
+    # Eliminar el modelo
+    msg += delete_model()
+    # Eliminar las tablas temporales
+    curs.close()
+    conn.close()
+
+    msg += "Tablas temporales eliminadas \n"
+    return msg
