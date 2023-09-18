@@ -95,9 +95,12 @@ def consulta1():
     '''
 
     conn, curs = connection_to_database()
-    # obtengo el listado de partidos
-    curs.execute(
-        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    curs.execute('''
+                 SELECT p.nombre, c.nombres AS presi, d.nombres AS vice
+                 FROM partido p 
+                 INNER JOIN candidato c ON p.id_partido = c.id_partido AND c.id_cargo = 1
+                 INNER JOIN candidato d ON p.id_partido = d.id_partido AND d.id_cargo = 2
+                ''')
     rows = curs.fetchall()
     data = {}
 
@@ -105,17 +108,8 @@ def consulta1():
     data["Filas"] = len(rows)
     list_can = []
     for r in rows:
-        political_name = r.nombre
-        # obtengo el candidato a presidente del partido actual
-        curs.execute(
-            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} and id_cargo = 1')
-        name_president = curs.fetchval()
-        curs.execute(
-            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} and id_cargo = 2')
-        name_vice = curs.fetchval()
-
-        actual = {"Partido": political_name,
-                  "Presidente": name_president, "Vicepresidente": name_vice}
+        actual = {"Partido": r.nombre,
+                  "Presidente": r.presi, "Vicepresidente": r.vice}
         list_can.append(actual)
 
     data["Return"] = list_can
@@ -131,9 +125,15 @@ def consulta2():
     electoral, parlamento) por cada partido
     """
     conn, curs = connection_to_database()
-    # obtener el listado de los partidos inscritos
-    curs.execute(
-        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+
+    curs.execute('''
+                    SELECT p.nombre, COUNT(c.id_candidato) cantidad
+                    FROM partido p
+                    INNER JOIN candidato c ON c.id_partido = p.id_partido AND (c.id_cargo > 2 AND c.id_cargo < 6) AND p.id_partido != -1
+                    GROUP BY
+                        p.nombre
+
+                ''')
     rows = curs.fetchall()
     data = {}
     list_dip = []
@@ -141,12 +141,7 @@ def consulta2():
     data["Filas"] = len(rows)
 
     for r in rows:
-        political_name = r.nombre
-        # obtener el conteo de candidatos a diputados para el partido
-        curs.execute(
-            f'SELECT COUNT (*) FROM candidato WHERE id_partido = {r.id_partido} AND (id_cargo >= 3 OR id_cargo<=5)')
-        quantity = curs.fetchval()
-        actual = {"Partido": political_name, "Cantidad de diputados": quantity}
+        actual = {"Partido": r.nombre, "Cantidad de diputados": r.cantidad}
         list_dip.append(actual)
 
     data["Return"] = list_dip
@@ -160,9 +155,12 @@ def consulta3():
     Mostrar el nombre de los candidatos a alcalde por partido
     """
     conn, curs = connection_to_database()
-    # obtener el listado de los partidos inscritos
-    curs.execute(
-        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    curs.execute('''
+                    SELECT p.nombre, c.nombres
+                    FROM partido p
+                    INNER JOIN candidato c ON c.id_partido = p.id_partido AND c.id_cargo = 6
+                    
+                ''')
     rows = curs.fetchall()
     data = {}
     list_alc = []
@@ -170,12 +168,7 @@ def consulta3():
     data["Filas"] = len(rows)
 
     for r in rows:
-        political_name = r.nombre
-        # obtener el conteo de candidatos a diputados para el partido
-        curs.execute(
-            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} AND id_cargo = 6')
-        name = curs.fetchval()
-        actual = {"Partido": political_name, "Alcalde": name}
+        actual = {"Partido": r.nombre, "Alcalde": r.nombres}
         list_alc.append(actual)
 
     data["Return"] = list_alc
@@ -190,22 +183,20 @@ def consulta4():
     alcaldes).
     """
     conn, curs = connection_to_database()
-    # obtener el listado de los partidos inscritos
-    curs.execute(
-        'SELECT id_partido, nombre FROM partido WHERE id_partido != -1')
+    curs.execute('''
+                    SELECT p.nombre, COUNT(c.id_candidato)candidatos
+                    FROM partido p
+                    INNER JOIN candidato c ON c.id_partido = p.id_partido AND c.id_cargo != -1 AND p.id_partido != -1
+                    GROUP BY
+                        p.nombre
+                ''')
     rows = curs.fetchall()
     data = {}
     list_cand = []
     data["Consulta"] = 4
     data["Filas"] = len(rows)
-
     for r in rows:
-        political_name = r.nombre
-        # obtener el conteo de candidatos a diputados para el partido
-        curs.execute(
-            f'SELECT COUNT(*) FROM candidato WHERE id_partido = {r.id_partido} AND id_cargo != -1')
-        quantity = curs.fetchval()
-        actual = {"Partido": political_name, "Total candidatos": quantity}
+        actual = {"Partido": r.nombre, "Total candidatos": r.candidatos}
         list_cand.append(actual)
 
     data["Return"] = list_cand
@@ -219,23 +210,20 @@ def consulta5():
     Cantidad de votaciones por departamentos.
     """
     conn, curs = connection_to_database()
-    # obtener el listado de los departamento
-    curs.execute(
-        'SELECT id_departamento, nombre FROM departamento')
+    curs.execute('''
+                    SELECT d.nombre, COUNT(v.id_voto)votos
+                    FROM departamento d
+                    INNER JOIN mesa m ON m.id_departamento = d.id_departamento
+                    INNER JOIN voto v ON v.id_mesa = m.id_mesa
+                    GROUP BY d.nombre
+                ''')
     rows = curs.fetchall()
     data = {}
     list_dep = []
     data["Consulta"] = 5
     data["Filas"] = len(rows)
-
     for r in rows:
-        department_name = r.nombre
-        # obtener el conteo de candidatos a diputados para el partido
-        curs.execute(
-            f'SELECT COUNT(*) FROM voto INNER JOIN mesa ON mesa.id_mesa = voto.id_mesa WHERE mesa.id_departamento = {r.id_departamento} ')
-        quantity = curs.fetchval()
-        actual = {"Departamento": department_name,
-                  "Cantidad de votos": quantity}
+        actual = {"Departamento": r.nombre, "Total Votos": r.votos}
         list_dep.append(actual)
 
     data["Return"] = list_dep
@@ -252,8 +240,11 @@ def consulta6():
     data = {}
     data["Consulta"] = 6
 
-    curs.execute(
-        f'SELECT COUNT (*) FROM voto INNER JOIN detalle_voto ON voto.id_voto = detalle_voto.id_voto AND detalle_voto.id_candidato = -1')
+    curs.execute('''
+                    SELECT COUNT(v.id_voto)
+                    FROM voto v
+                    INNER JOIN detalle_voto d ON d.id_voto = v.id_voto AND d.id_candidato = -1
+                ''')
     quantity = curs.fetchval()
     data["Detalles de votos nulos"] = quantity
     data["Votos nulos"] = quantity/5
@@ -298,31 +289,22 @@ def consulta8():
         presidente incluye el vicepresidente)
     """
     conn, curs = connection_to_database()
-    curs.execute("""
-                SELECT TOP 10 nombres, id_partido, COUNT(id_partido) cantidad
-                FROM 
-                    candidato c
-                INNER JOIN detalle_voto v
-                    ON c.id_candidato = v.id_candidato AND c.id_cargo = 1
-                GROUP BY 
-                    c.id_partido, c.nombres
-                ORDER BY 
-                    cantidad DESC
-                """)
+    curs.execute('''
+                    SELECT TOP 10 p.nombre AS parti, c.nombres AS presi, d.nombres AS vice, COUNT(v.id_candidato)votos
+                    FROM  partido p
+                    INNER JOIN candidato c ON c.id_partido = p.id_partido AND c.id_cargo = 1
+                    INNER JOIN candidato d ON d.id_partido = p.id_partido AND d.id_cargo = 2
+                    INNER JOIN detalle_voto v ON v.id_candidato = c.id_candidato
+                    GROUP BY p.nombre, c.nombres, d.nombres
+                    ORDER BY votos DESC
+                ''')
     rows = curs.fetchall()
     data = {}
     lista_cand = []
     data["Consulta"] = 8
-
     for r in rows:
-        curs.execute(
-            f'SELECT nombre FROM partido WHERE id_partido = {r.id_partido}')
-        political_name = curs.fetchval()
-        curs.execute(
-            f'SELECT nombres FROM candidato WHERE id_partido = {r.id_partido} AND id_cargo = 2')
-        vice_name = curs.fetchval()
-        actual = {"Votos": r.cantidad, "Partido": political_name,
-                  "Presidente": r.nombres, "Vicepresidente": vice_name}
+        actual = {"Partido": r.parti, "Presidente": r.presi,
+                  "Vicepresidente": r.vice, "Votos": r.votos}
         lista_cand.append(actual)
 
     data["Return"] = lista_cand
@@ -332,31 +314,26 @@ def consulta8():
 
 
 def consulta9():
+    """
+        Top 5 de mesas más frecuentadas (mostrar no. Mesa y departamento al que pertenece)
+    """
     conn, curs = connection_to_database()
-    curs.execute("SELECT * FROM mesa")
-    mesas = curs.fetchall()
-    print(mesas[0], len(mesas))
-    curs.execute("""
-                SELECT TOP 5 mesa.id_mesa, mesa.id_departamento, COUNT(*) cantidad
-                FROM 
-                    mesa 
-                INNER JOIN voto v
-                    ON mesa.id_mesa = v.id_mesa 
-                GROUP BY 
-                    mesa.id_mesa, mesa.id_departamento
-                ORDER BY 
-                    cantidad DESC
-                """)
+
+    curs.execute('''
+                    SELECT TOP 5 m.id_mesa, d.nombre, COUNT(v.id_voto)votos
+                    FROM mesa m
+                    INNER JOIN voto v ON v.id_mesa = m.id_mesa
+                    INNER JOIN departamento d ON d.id_departamento = m.id_departamento
+                    GROUP BY m.id_mesa, d.nombre
+                    ORDER BY votos DESC
+                ''')
     rows = curs.fetchall()
     data = {}
     list_m = []
     data["Consulta"] = 9
     for r in rows:
-        curs.execute(
-            f'SELECT nombre FROM departamento WHERE id_departamento = {r.id_departamento}')
-        name_dep = curs.fetchval()
-        actual = {"No. de mesa": r.id_mesa,
-                  "Departamento": name_dep, "Votos": r.cantidad}
+        actual = {"No. Mesa": r.id_mesa, "Departamento": r.nombre,
+                  "Cantidad de votos": r.votos}
         list_m.append(actual)
 
     data["Return"] = list_m
@@ -370,6 +347,29 @@ def consulta10():
         Mostrar el top 5 la hora más concurrida en que los ciudadanos fueron a votar.
     """
     conn, curs = connection_to_database()
+    curs.execute('''
+                    SELECT TOP 5 fecha_hora, COUNT(id_voto)cantidad
+                    FROM voto
+                    GROUP BY
+                        fecha_hora
+                    ORDER BY
+                        cantidad DESC
+                ''')
+
+    rows = curs.fetchall()
+    data = {}
+    top_list = []
+    data["Consulta"] = 10
+
+    for r in rows:
+        actual = {"Fecha y Hora": r.fecha_hora, "Votos": r.cantidad}
+        top_list.append(actual)
+
+    data["Return"] = top_list
+
+    curs.close()
+    conn.close()
+    return data
 
 
 def consulta11():
@@ -377,24 +377,19 @@ def consulta11():
         Cantidad de votos por genero (Masculino, Femenino).
     """
     conn, curs = connection_to_database()
-    curs.execute('''
-                 SELECT COUNT(ciudadano.genero)cantidad
-                 FROM ciudadano
-                 INNER JOIN voto v
-                    ON v.dpi = ciudadano.dpi AND ciudadano.genero = 'F'
-                ''')
-    fem = curs.fetchval()
 
     curs.execute('''
-                 SELECT COUNT(ciudadano.genero)cantidad
+                 SELECT 
+                    COUNT(CASE WHEN genero = 'F' THEN ciudadano.dpi END)AS feme,
+                    COUNT(CASE WHEN genero = 'M' THEN ciudadano.dpi END)AS masc
                  FROM ciudadano
                  INNER JOIN voto v
-                    ON v.dpi = ciudadano.dpi AND ciudadano.genero = 'M'
+                    ON v.dpi = ciudadano.dpi
                 ''')
-    masc = curs.fetchval()
 
+    res = curs.fetchall()
     data = {"Consulta": 11, "Return": [
-        {"Genero": "Femenino", "Votos": fem}, {"Genero": "Masculino", "Votos": masc}]}
+        {"Genero": "Femenino", "Votos": res[0].feme}, {"Genero": "Masculino", "Votos": res[0].masc}]}
     curs.close()
     conn.close()
 
